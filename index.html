@@ -141,8 +141,8 @@ function mulai(){
 function layarKode(pesan){
   berhentiPoll(); kepalaKecil(false); $('batang').classList.add('hide');
   $('isi').innerHTML = '<div class="card"><img class="ilus" alt="" src="'+ILUS+'"><h2>Masukkan kode sesi</h2>'+
-    '<p class="bantu" style="margin-top:0">Kode sesi diberikan oleh pendamping, misalnya <b>BST-7KQ4</b>. Kamu juga bisa memindai QR yang ditampilkan.</p>'+
-    '<input type="text" id="kode" maxlength="20" placeholder="BST-XXXX" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;margin-top:10px">'+
+    '<p class="bantu" style="margin-top:0">Kode sesi diberikan oleh pendamping, misalnya <b>7KQ4</b>. Kamu juga bisa memindai QR yang ditampilkan.</p>'+
+    '<input type="text" id="kode" maxlength="20" placeholder="XXXX" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;margin-top:10px">'+
     '<div class="galat" id="galat">'+esc(pesan||'')+'</div><button class="btn" id="lanjut" style="margin-top:12px">Lanjut</button></div>';
   $('lanjut').onclick=function(){ var k=$('kode').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,''); if(!k){ $('galat').textContent='Kode sesi belum diisi.'; return; } history.replaceState(null,'','?k='+encodeURIComponent(k)); muatSesi(k); };
   $('kode').onkeydown=function(e){ if(e.key==='Enter') $('lanjut').click(); };
@@ -154,7 +154,8 @@ function muatSesi(kode, diam){
   if(!diam) layarMuat('Memuat sesi…');
   return minta({ action:'sesi', kode:kode }, { maks: diam?3:8 }).then(function(j){
     if(!j.ok){ if(j.tidakAda){ layarKode(j.error); return; } throw new Error(j.error); }
-    S = j; tampilSesi();
+    S = j; if(kodeDariUrl()!==S.kode){ try{ history.replaceState(null,'','?k='+encodeURIComponent(S.kode)); }catch(e){} }
+    tampilSesi();
   }).catch(function(e){
     if(diam) return;
     $('isi').innerHTML='<div class="card"><div class="galat">'+esc(e.message)+'</div><button class="btn biru" onclick="muatSesi(\''+esc(kode)+'\')">Coba lagi</button></div>';
