@@ -67,6 +67,14 @@ input:focus{outline:none;border-color:var(--biru2);box-shadow:0 0 0 3px rgba(31,
 .ringkas button{padding:10px 0;border-radius:10px;border:1.5px solid var(--garis);background:#fff;font-weight:700;font-family:inherit;cursor:pointer;color:var(--teks)}
 .ringkas button.isi{background:#e8f6ec;border-color:#9fd3ae;color:var(--hijau)}
 .ringkas button.kosong{background:#fdecea;border-color:#efb1b1;color:var(--merah)}
+.banding{border-radius:12px;padding:10px 12px;margin:2px 0 12px;text-align:left;font-size:.88rem;border:1px solid}
+.banding.naik{background:#eaf6ee;border-color:#b9e0c6;color:var(--hijau)}
+.banding.turun{background:#fdeeee;border-color:#f3c2c2;color:var(--merah)}
+.banding.tetap{background:#f1f4f9;border-color:var(--garis);color:var(--abu)}
+.bandingBaris{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;color:var(--teks)}
+.banding .selisih{font-weight:800;white-space:nowrap}
+.banding.naik .selisih{color:var(--hijau)}.banding.turun .selisih{color:var(--merah)}.banding.tetap .selisih{color:var(--abu)}
+.banding p{margin:6px 0 0;font-weight:600}
 .skor{font-size:3.4rem;font-weight:800;color:var(--biru);text-align:center;line-height:1;margin:6px 0}
 .tengah{text-align:center}
 .ok{width:58px;height:58px;border-radius:50%;background:#e8f6ec;color:var(--hijau);display:flex;align-items:center;justify-content:center;font-size:30px;margin:4px auto 10px}
@@ -284,6 +292,24 @@ function kirimJawaban(){
     .catch(function(e){ g.textContent=e.message+' Jawabanmu tetap tersimpan di HP ini.'; b.disabled=false; b.textContent='Coba kirim lagi'; });
 }
 
+/* perbandingan nilai pre-test dengan nilai post-test terbaik */
+var PESAN_B = {
+  naik: ['Selamat! Kerja kerasmu terbayar. Pertahankan, ya!','Keren! Kamu belajar banyak hari ini. Terus tertib dan jadi teladan bagi teman-temanmu!','Mantap! Nilaimu naik, tanda kamu menyimak dengan baik. Selamat!','Luar biasa! Ilmu hari ini sudah kamu kuasai. Terapkan di sekolah dan di rumah, ya!','Hebat, ada kemajuan nyata! Terus semangat belajar dan jadi pelajar yang tertib.'],
+  turun: ['Jangan patah semangat! Baca lagi materinya dan tanyakan yang belum jelas, pasti bisa lebih baik.','Tidak apa-apa, semua orang belajar dari kesalahan. Yuk ulangi materinya dan coba lagi!','Tetap semangat! Rajin membaca dan bertanya adalah kunci, nilaimu pasti bisa naik.','Nilai bukan segalanya, yang penting terus belajar. Ayo baca ulang materi BESTIE!','Kamu pasti bisa! Coba ingat lagi penjelasan tadi dan diskusikan dengan teman atau guru.'],
+  pahamTetap: ['Nilaimu stabil di atas 70. Kamu sudah paham materi BESTIE, pertahankan!','Konsisten! Dari awal kamu sudah paham, sekarang saatnya menerapkannya sehari-hari.','Bagus, pemahamanmu tetap baik. Terus jadi pelajar yang tertib, ya!','Nilaimu tetap tinggi. Bagikan ilmumu ke teman-teman supaya sama-sama tertib!','Kamu sudah paham sejak awal. Pertahankan dan jadi contoh bagi temanmu!'],
+  tetap: ['Nilaimu belum berubah. Yuk ulangi materinya pelan-pelan, kamu pasti bisa lebih baik!','Ayo semangat! Baca lagi materinya dan tanyakan pada pendamping yang belum jelas.','Belum naik, bukan berarti tidak bisa. Coba pahami lagi poin-poin pentingnya, ya!','Pelan-pelan saja, yang penting terus belajar. Kamu pasti bisa naik!','Tetap semangat! Ulangi materinya dan catat hal-hal yang penting.']
+};
+/* pilihan pesan tetap untuk siswa yang sama (tidak berganti saat halaman dimuat ulang), tapi beda antarsiswa */
+function pilihB(a, kunci){ var h=0, k=String(kunci||''); for(var i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))>>>0; return a[h % a.length]; }
+function bandingHTML(pre, post){
+  if(pre===undefined || pre===null || pre==='' || isNaN(+pre) || post===undefined) return '';
+  pre=+pre; post=+post; var d=post-pre;
+  var jenis = d>0 ? 'naik' : d<0 ? 'turun' : (post>70 ? 'pahamTetap' : 'tetap');
+  var kelas = jenis==='naik'||jenis==='pahamTetap' ? 'naik' : jenis==='turun' ? 'turun' : 'tetap';
+  var label = d>0 ? '▲ Naik '+d+' poin' : d<0 ? '▼ Turun '+(-d)+' poin' : '= Sama';
+  return '<div class="banding '+kelas+'"><div class="bandingBaris"><span>Pre-test <b>'+pre+'</b> → Post-test'+'<b> '+post+'</b></span><span class="selisih">'+label+'</span></div>'+
+    '<p>'+esc(pilihB(PESAN_B[jenis], (S?S.kode:'')+'|'+(T&&T.identitas?T.identitas.kelas+'|'+T.identitas.absen+'|'+T.identitas.nama:'')+'|'+jenis+'|'+pre+'|'+post))+'</p></div>';
+}
 function layarHasil(j){
   if(tJam){ clearInterval(tJam); tJam=null; }
   $('batang').classList.add('hide'); kepalaKecil(false);
@@ -291,14 +317,14 @@ function layarHasil(j){
   if(j.sudah){
     h+='<h2>Pre-test sudah pernah dikerjakan</h2><p>'+esc(j.error)+'</p><p class="bantu">Kalau ini keliru (mis. salah tulis kelas/absen), beri tahu pendamping.</p>';
   } else if(j.habis){
-    h+='<h2>Kesempatan post-test habis</h2><p class="bantu" style="margin:0">Nilai tertinggimu</p><div class="skor">'+j.tertinggi+'</div><p>Terima kasih sudah mengikuti BESTIE!</p>';
+    h+='<h2>Kesempatan post-test habis</h2><p class="bantu" style="margin:0">Nilai tertinggimu</p><div class="skor">'+j.tertinggi+'</div>'+bandingHTML(j.pre, j.tertinggi)+'<p>Terima kasih sudah mengikuti BESTIE!</p>';
   } else if(j.tes==='pre'){
     h+='<div class="ok">✓</div><h2>Pre-test tersimpan</h2><p>Terima kasih, '+esc(T.identitas.nama.split(' ')[0])+'! Sekarang ikuti sesi BESTIE dengan saksama. Post-test akan dibuka pendamping setelah sesi selesai.</p>'+
       '<p class="bantu">Untuk post-test nanti, pindai QR yang sama atau buka kembali halaman ini.</p>';
   } else {
     h+='<p class="bantu" style="margin:0">Nilai post-test '+(j.percobaan>1?'ke-'+j.percobaan:'')+'</p><div class="skor">'+j.skor+'</div>'+
       '<p style="margin:4px 0 10px">Benar '+j.benar+' dari '+j.jumlah+' soal'+(j.percobaan>1?' · nilai tertinggimu <b>'+j.tertinggi+'</b>':'')+'</p>'+
-      (j.skor>=70?'<p style="color:var(--hijau);font-weight:700;margin:0 0 10px">Hebat, kamu sudah memahami materi BESTIE!</p>':'');
+      bandingHTML(j.pre, j.tertinggi);
     if(j.sisa>0) h+='<p class="bantu">Kamu masih punya '+j.sisa+' kesempatan lagi. Nilai terbaik yang dipakai.</p><button class="btn garis" id="ulang" style="margin-top:6px">Kerjakan ulang post-test</button>';
     else h+='<p class="bantu">Terima kasih sudah mengikuti BESTIE!</p>';
   }
