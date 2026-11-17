@@ -80,6 +80,22 @@ input:focus{outline:none;border-color:var(--biru2);box-shadow:0 0 0 3px rgba(31,
 .ok{width:58px;height:58px;border-radius:50%;background:#e8f6ec;color:var(--hijau);display:flex;align-items:center;justify-content:center;font-size:30px;margin:4px auto 10px}
 .kaki{text-align:center;color:var(--abu);font-size:.8rem;margin-top:8px}
 .hide{display:none!important}
+/* kuesioner */
+.kueAtas{background:#eef3ff;border-radius:10px;padding:10px 12px;font-size:.9rem;margin:0 0 4px}
+.butir{border-top:1px solid var(--garis);padding:14px 0 12px}
+.butir:first-of-type{border-top:0}
+.butir .tanyaK{font-weight:600;margin:0;line-height:1.45}
+.butir .tanyaK i{font-style:normal;color:var(--abu);margin-right:4px}
+.butir.kurang .tanyaK{color:var(--merah)}
+.butir.kurang .lik button{border-color:#efb1b1}
+.lik{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+.lik button{border:1.5px solid var(--garis);border-radius:10px;background:#fff;padding:8px 2px 7px;font-family:inherit;cursor:pointer;color:var(--abu);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;min-height:76px;-webkit-tap-highlight-color:transparent}
+.lik button b{font-size:1.15rem;color:var(--teks);line-height:1}
+.lik button span{font-size:.68rem;line-height:1.15;text-align:center}
+.lik button.on{border-color:var(--biru2);background:var(--biru2);color:#fff}
+.lik button.on b{color:#fff}
+textarea{width:100%;padding:12px;border:1.5px solid var(--garis);border-radius:10px;font-size:1rem;font-family:inherit;background:#fff;color:var(--teks);resize:vertical}
+textarea:focus{outline:none;border-color:var(--biru2);box-shadow:0 0 0 3px rgba(31,75,181,.15)}
 /* buklet */
 .buk .bukIsi{display:flex;gap:12px;align-items:center;margin-bottom:12px}
 .buk .bukIkon{flex:none;width:44px;height:44px;border-radius:12px;background:#eef3ff;display:flex;align-items:center;justify-content:center;font-size:24px}
@@ -214,6 +230,8 @@ function tampilSesi(){
     var pesan = S.status==='Belum dibuka' ? ['Pre-test belum dibuka','Tunggu aba-aba pendamping. Halaman ini akan memeriksa sendiri setiap 30 detik.']
       : S.status==='Ditutup' ? ['Pre-test sudah ditutup','Ikuti sesi BESTIE. Post-test akan dibuka pendamping setelah sesi selesai. Halaman ini memeriksa sendiri setiap 30 detik.']
       : ['Tes sudah selesai','Terima kasih sudah mengikuti BESTIE. Sampai jumpa!'];
+    var postLama = baca('bestie_tes_'+S.kode+'_post');      // post-test terkirim tapi kuesioner belum diisi (mis. sesi sudah ditutup)
+    if(postLama && postLama.terkirim && postLama.hasil && postLama.hasil.perluKuesioner){ T = postLama; layarHasil(T.hasil); return; }
     var pre = baca('bestie_tes_'+S.kode+'_pre');
     if(pre && pre.terkirim && S.status!=='Selesai') h += '<div class="card" style="border-left:4px solid var(--hijau)"><b style="color:var(--hijau)">✓ Pre-test kamu sudah tersimpan.</b><div class="bantu">'+esc(pre.identitas.nama)+' · Kelas '+esc(pre.identitas.kelas)+' · No. absen '+esc(pre.identitas.absen)+'</div></div>';
     h += '<div class="card"><div class="tunggu">'+(S.status==='Selesai'?'':'<div class="putar"></div>')+'<b>'+pesan[0]+'</b>'+esc(pesan[1])+'</div>'+
@@ -263,7 +281,7 @@ function jalankanJam(){
     w.classList.toggle('habis', s<=0);
     var p=$('peringatan'); if(p) p.classList.toggle('hide', s>0);
   }
-  detak(); tJam=setInterval(detak, 1000);
+  $('waktu').classList.remove('hide'); detak(); tJam=setInterval(detak, 1000);
 }
 function terjawab(){ return T.soal.filter(function(q){ return T.jawaban[q.id]!=null; }).length; }
 
@@ -341,6 +359,7 @@ function bandingHTML(pre, post){
 }
 function layarHasil(j){
   if(tJam){ clearInterval(tJam); tJam=null; }
+  if(j.perluKuesioner && j.kuesioner && j.kuesioner.length){ layarKuesioner(j.kuesioner); return; }
   $('batang').classList.add('hide'); kepalaKecil(false);
   var h='<div class="card tengah">';
   if(j.sudah){
@@ -352,7 +371,7 @@ function layarHasil(j){
       '<p class="bantu">Untuk post-test nanti, pindai QR yang sama atau buka kembali halaman ini.</p>';
   } else {
     h+='<p class="bantu" style="margin:0">Nilai post-test '+(j.percobaan>1?'ke-'+j.percobaan:'')+'</p><div class="skor">'+j.skor+'</div>'+
-      '<p style="margin:4px 0 10px">Benar '+j.benar+' dari '+j.jumlah+' soal'+(j.percobaan>1?' · nilai tertinggimu <b>'+j.tertinggi+'</b>':'')+'</p>'+
+      '<p style="margin:4px 0 10px">'+(j.benar!=null?'Benar '+j.benar+' dari '+j.jumlah+' soal':'')+(j.percobaan>1?(j.benar!=null?' · ':'')+'nilai tertinggimu <b>'+j.tertinggi+'</b>':'')+'</p>'+
       bandingHTML(j.pre, j.tertinggi);
     if(j.sisa>0) h+='<p class="bantu">Kamu masih punya '+j.sisa+' kesempatan lagi. Nilai terbaik yang dipakai.</p><button class="btn garis" id="ulang" style="margin-top:6px">Kerjakan ulang post-test</button>';
     else h+='<p class="bantu">Terima kasih sudah mengikuti BESTIE!</p>';
@@ -369,6 +388,53 @@ function layarHasil(j){
     });
   };
   window.scrollTo(0,0);
+}
+
+/* ---------- kuesioner pelaksanaan (wajib, sebelum nilai post-test tampil) ---------- */
+var LIKERT = ['Sangat Tidak Setuju','Tidak Setuju','Netral','Setuju','Sangat Setuju'];
+function layarKuesioner(butir){
+  berhentiPoll(); kepalaKecil(true);
+  T.kues = T.kues || { jawaban:{}, saran:'' }; tulis(kunciTes(), T);
+  $('batang').classList.remove('hide'); $('waktu').classList.add('hide');
+  function hitung(){ var n=butir.filter(function(q){ return T.kues.jawaban[q.id]; }).length;
+    $('bLbl').textContent='Kuesioner · '+n+' dari '+butir.length+' terisi'; $('prog').style.width=(n/butir.length*100)+'%'; return n; }
+  $('isi').innerHTML='<div class="card"><div class="ok" style="background:#e8f6ec">✓</div><h2 class="tengah" style="margin-bottom:6px">Post-test terkirim!</h2>'+
+    '<p class="tengah" style="margin:0 0 12px">Satu langkah lagi. Isi kuesioner singkat tentang kegiatan BESTIE hari ini, lalu nilaimu akan muncul.</p>'+
+    '<p class="kueAtas">Pilih satu angka untuk setiap pernyataan: <b>1</b> = sangat tidak setuju sampai <b>5</b> = sangat setuju. Jawab sejujurnya. Jawabanmu <b>tidak memengaruhi nilai</b>.</p>'+
+    butir.map(function(q,i){ return '<div class="butir" data-id="'+esc(q.id)+'"><p class="tanyaK"><i>'+(i+1)+'.</i>'+esc(q.t)+'</p><div class="lik" role="radiogroup" aria-label="Pernyataan '+(i+1)+'">'+
+      LIKERT.map(function(l,k){ var v=k+1; return '<button type="button" role="radio" data-v="'+v+'" aria-checked="'+(T.kues.jawaban[q.id]===v)+'" class="'+(T.kues.jawaban[q.id]===v?'on':'')+'"><b>'+v+'</b><span>'+l+'</span></button>'; }).join('')+'</div></div>'; }).join('')+
+    '<label for="saran" style="margin-top:14px">Kritik dan saran untuk kegiatan BESTIE <span style="font-weight:400;color:var(--abu)">(tidak wajib)</span></label>'+
+    '<textarea id="saran" rows="3" maxlength="1000" placeholder="Tulis di sini…">'+esc(T.kues.saran||'')+'</textarea>'+
+    '<div class="galat" id="galat"></div><button class="btn" id="kirimKue" style="margin-top:12px">Kirim &amp; lihat nilai</button>'+
+    '<div class="kaki">'+esc(T.identitas.nama)+' · Kelas '+esc(T.identitas.kelas)+' · No. absen '+esc(T.identitas.absen)+'</div></div>';
+  [].forEach.call(document.querySelectorAll('.butir'), function(el){
+    var id=el.getAttribute('data-id');
+    [].forEach.call(el.querySelectorAll('.lik button'), function(b){ b.onclick=function(){
+      T.kues.jawaban[id]=+b.getAttribute('data-v'); tulis(kunciTes(), T);
+      [].forEach.call(el.querySelectorAll('.lik button'), function(x){ x.classList.toggle('on', x===b); x.setAttribute('aria-checked', x===b); });
+      el.classList.remove('kurang'); hitung();
+    }; });
+  });
+  $('saran').oninput=function(){ T.kues.saran=this.value; tulis(kunciTes(), T); };
+  $('kirimKue').onclick=function(){
+    var kurang=butir.filter(function(q){ return !T.kues.jawaban[q.id]; });
+    [].forEach.call(document.querySelectorAll('.butir'), function(el){ el.classList.toggle('kurang', !T.kues.jawaban[el.getAttribute('data-id')]); });
+    if(kurang.length){ $('galat').textContent=kurang.length+' pernyataan belum dijawab (ditandai merah).';
+      var el=document.querySelector('.butir.kurang'); if(el) el.scrollIntoView({ behavior:'smooth', block:'center' }); return; }
+    kirimKuesioner();
+  };
+  hitung(); window.scrollTo(0,0);
+}
+function kirimKuesioner(){
+  var b=$('kirimKue'), g=$('galat'); b.disabled=true; g.textContent='';
+  var data={ action:'kuesioner', kode:T.kode, nama:T.identitas.nama, kelas:T.identitas.kelas, absen:T.identitas.absen, idKirim:T.idKirim,
+    jawaban:T.kues.jawaban, saran:T.kues.saran||'' };
+  minta(data, { maks:10, tiap:function(ke){ b.textContent = ke>1 ? 'Server ramai, mencoba lagi ('+ke+')…' : 'Mengirim…'; } })
+    .then(function(j){
+      if(j.ok || j.habis){ $('waktu').classList.remove('hide'); T.hasil=j; tulis(kunciTes(), T); layarHasil(j); return; }
+      throw new Error(j.error || 'Gagal mengirim.');
+    })
+    .catch(function(e){ g.textContent=e.message+' Isianmu tetap tersimpan di HP ini.'; b.disabled=false; b.textContent='Coba kirim lagi'; });
 }
 
 /* ---------- buklet ---------- */
