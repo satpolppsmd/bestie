@@ -135,6 +135,8 @@ function baca(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catc
 function tulis(k,v){ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function acak(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var x=a[i]; a[i]=a[j]; a[j]=x; } return a; }
 function idBaru(){ var c='abcdefghijkmnpqrstuvwxyz23456789', s=''; var r=(window.crypto&&crypto.getRandomValues)?crypto.getRandomValues(new Uint8Array(20)):null; for(var i=0;i<20;i++) s+=c.charAt((r?r[i]:Math.floor(Math.random()*256))%c.length); return s; }
+/* data jenjang tetap 'SMA', tampilan 'SMA/SMK' */
+function labelJenjang(j){ return j==='SMA'?'SMA/SMK':(j||''); }
 function namaTes(t){ return t==='pre'?'Pre-test':'Post-test'; }
 function kunciTes(){ return 'bestie_tes_'+S.kode+'_'+T.tes; }
 
@@ -196,7 +198,7 @@ function muatSesi(kode, diam){
 }
 
 function infoHTML(){
-  return '<dl class="info"><dt>Sekolah</dt><dd>'+esc(S.sekolah)+'</dd><dt>Jenjang</dt><dd>'+esc(S.jenjang)+'</dd><dt>Tanggal</dt><dd>'+esc(tglIndo(S.tanggal))+'</dd><dt>Kode sesi</dt><dd>'+esc(S.kode)+'</dd></dl>';
+  return '<dl class="info"><dt>Sekolah</dt><dd>'+esc(S.sekolah)+'</dd><dt>Jenjang</dt><dd>'+esc(labelJenjang(S.jenjang))+'</dd><dt>Tanggal</dt><dd>'+esc(tglIndo(S.tanggal))+'</dd><dt>Kode sesi</dt><dd>'+esc(S.kode)+'</dd></dl>';
 }
 
 function tampilSesi(){
@@ -380,7 +382,7 @@ function bukletBoleh(){
 }
 function bukletHTML(){
   if(!bukletBoleh()) return '';
-  return '<div class="card buk"><div class="bukIsi"><div class="bukIkon" aria-hidden="true">📖</div><div><b>Buklet BESTIE '+esc(S.jenjang)+'</b>'+
+  return '<div class="card buk"><div class="bukIsi"><div class="bukIkon" aria-hidden="true">📖</div><div><b>Buklet BESTIE '+esc(labelJenjang(S.jenjang))+'</b>'+
     '<div class="bantu">Materi BESTIE untuk dibaca ulang. Bisa juga diunduh sebagai PDF.</div></div></div>'+
     '<button class="btn biru" type="button" onclick="bukaBuklet()">📖 Baca buklet BESTIE</button></div>';
 }
@@ -411,7 +413,7 @@ function bukaBuklet(){
     $('bUnduh').onclick=function(){ catatBuklet('unduh'); };
     $('bFrame').onload=function(){ if(this.getAttribute('src')){ $('bMuat').classList.add('hide'); this.style.visibility='visible'; } };
   }
-  $('bJudul').innerHTML='Buklet <span class="bPanjang">BESTIE · </span>'+esc(S.jenjang);
+  $('bJudul').innerHTML='Buklet <span class="bPanjang">BESTIE · </span>'+esc(labelJenjang(S.jenjang));
   $('bUnduh').href=B.pdf; $('bUnduh').setAttribute('download', B.pdf.split('/').pop());
   if(bJenjang!==S.jenjang){ bJenjang=S.jenjang; $('bMuat').classList.remove('hide'); $('bFrame').style.visibility='hidden'; $('bFrame').src=B.html; }
   o.classList.remove('hide'); document.body.classList.add('bukaBuklet');
