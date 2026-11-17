@@ -159,7 +159,7 @@ function namaTes(t){ return t==='pre'?'Pre-test':'Post-test'; }
 function kunciTes(){ return 'bestie_tes_'+S.kode+'_'+T.tes; }
 
 /* ---------- komunikasi dengan server (dengan coba ulang saat ramai) ---------- */
-/* Jalur utama Cloudflare; bila gagal 2x berturut-turut atau jatahnya habis, HP memakai Apps Script selama 10 menit. */
+/* Jalur utama Cloudflare; bila gagal 4x berturut-turut atau jatahnya habis, HP memakai Apps Script selama 10 menit. */
 function cfAktif(){ return !!API_CF && Date.now() > (+(baca('bestie_cadangan')||0)); }
 function pakaiCadangan(ms){ tulis('bestie_cadangan', Date.now()+ms); }
 function kirimKe(url, data, ms){
@@ -187,8 +187,8 @@ function minta(data, opsi){
         .catch(function(e){
           if(cf && !(e && e.ulang)){                                     // Cloudflare tidak menjawab dengan benar
             if(e && e.ganti) return coba();
-            if(++gagalCF >= 2){ pakaiCadangan(10*60000); return coba(); }
-            return setTimeout(coba, 1500);
+            if(++gagalCF >= 4){ pakaiCadangan(10*60000); return coba(); }   // 4x gagal berturut-turut: pakai Apps Script 10 menit
+            return setTimeout(coba, 1000 + Math.random()*1500*gagalCF);       // padat sesaat: coba lagi dengan jeda acak
           }
           if(!opsi.terus && ke>=maks) return gagal(new Error('Koneksi ke server gagal. Periksa internet lalu coba lagi.'));
           var jeda = Math.min(opsi.terus?20000:15000, 1200*Math.pow(1.6, Math.min(ke,12)-1)) * (0.6 + Math.random()*0.8);
