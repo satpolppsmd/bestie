@@ -80,6 +80,28 @@ input:focus{outline:none;border-color:var(--biru2);box-shadow:0 0 0 3px rgba(31,
 .ok{width:58px;height:58px;border-radius:50%;background:#e8f6ec;color:var(--hijau);display:flex;align-items:center;justify-content:center;font-size:30px;margin:4px auto 10px}
 .kaki{text-align:center;color:var(--abu);font-size:.8rem;margin-top:8px}
 .hide{display:none!important}
+/* buklet */
+.buk .bukIsi{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.buk .bukIkon{flex:none;width:44px;height:44px;border-radius:12px;background:#eef3ff;display:flex;align-items:center;justify-content:center;font-size:24px}
+.buk b{color:var(--biru);font-size:1rem}
+.buk .bantu{margin-top:2px}
+body.bukaBuklet{overflow:hidden}
+#buklet{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;background:#E9E4DA}
+#buklet .bBar{flex:none;background:linear-gradient(135deg,var(--biru),var(--biru2));color:#fff;border-bottom:3px solid var(--kuning);padding:8px 10px;padding-top:max(8px,env(safe-area-inset-top));display:flex;align-items:center;gap:8px}
+#buklet .bJudul{flex:1;min-width:0;font-weight:700;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#buklet .bTombol{flex:none;display:inline-flex;align-items:center;gap:5px;border-radius:10px;padding:8px 11px;font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;border:0;line-height:1.2}
+#buklet .bUnduh{background:var(--kuning);color:#1d2433}
+#buklet .bTutup{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.45)}
+#buklet .bPita{flex:none;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff4c2;color:#6b5300;font-weight:700;font-size:.9rem;padding:8px 12px;border-bottom:1px solid #ecd77a}
+#buklet .bPita button{background:var(--biru2);color:#fff;border:0;border-radius:999px;padding:5px 14px;font-weight:700;font-family:inherit;font-size:.88rem;cursor:pointer}
+@media (max-width:440px){#buklet .bPanjang{display:none}}
+#buklet .bBadan{flex:1;position:relative;min-height:0}
+#buklet iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent}
+#buklet .bMuat{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--abu);font-weight:600}
+#buklet .bDialog{position:absolute;inset:0;z-index:2;background:rgba(18,30,60,.45);display:flex;align-items:center;justify-content:center;padding:20px}
+#buklet .bDialog .card{max-width:360px;width:100%;text-align:center;margin:0}
+#buklet .bDialog h2{font-size:1.15rem;margin:4px 0 6px}
+#buklet .bDialog .nav{flex-direction:column;gap:8px;margin-top:14px}
 </style>
 </head>
 <body>
@@ -101,6 +123,9 @@ var DURASI = 5 * 60;
 var S = null;          // info sesi dari server
 var T = null;          // tes yang sedang dikerjakan
 var tPoll = null, tJam = null;
+/* buklet per jenjang (berkas di folder buklet/ repo bestie) */
+var BUKLET = { SMP:{ html:'buklet/smp.html', pdf:'buklet/BESTIE_Buklet_Pelajar_SMP.pdf' },
+               SMA:{ html:'buklet/sma.html', pdf:'buklet/BESTIE_Buklet_Pelajar_SMA.pdf' } };
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -176,6 +201,7 @@ function infoHTML(){
 
 function tampilSesi(){
   berhentiPoll(); kepalaKecil(false); $('batang').classList.add('hide');
+  cekPostBuklet();
   // ada pengerjaan yang belum terkirim di HP ini?
   if(S.tes){
     var simpan = baca('bestie_tes_'+S.kode+'_'+S.tes);
@@ -190,6 +216,7 @@ function tampilSesi(){
     if(pre && pre.terkirim && S.status!=='Selesai') h += '<div class="card" style="border-left:4px solid var(--hijau)"><b style="color:var(--hijau)">✓ Pre-test kamu sudah tersimpan.</b><div class="bantu">'+esc(pre.identitas.nama)+' · Kelas '+esc(pre.identitas.kelas)+' · No. absen '+esc(pre.identitas.absen)+'</div></div>';
     h += '<div class="card"><div class="tunggu">'+(S.status==='Selesai'?'':'<div class="putar"></div>')+'<b>'+pesan[0]+'</b>'+esc(pesan[1])+'</div>'+
       (S.status==='Selesai'?'':'<button class="btn garis" style="margin-top:12px" id="cekLagi">Periksa sekarang</button>')+'</div>';
+    h += bukletHTML();
     $('isi').innerHTML = h;
     if($('cekLagi')){ $('cekLagi').onclick=function(){ muatSesi(S.kode); }; mulaiPoll(); }
     return;
@@ -329,6 +356,7 @@ function layarHasil(j){
     else h+='<p class="bantu">Terima kasih sudah mengikuti BESTIE!</p>';
   }
   h+='<div class="kaki" style="margin-top:14px">'+esc(S?S.sekolah:'')+' · '+(T?esc(T.identitas.nama)+' · Kelas '+esc(T.identitas.kelas)+' · No. '+esc(T.identitas.absen):'')+'</div></div>';
+  h+=bukletHTML();
   $('isi').innerHTML=h;
   if(S && (j.tes==='pre' || j.sudah)) mulaiPoll();   // lanjut otomatis ke post-test saat dibuka
   if($('ulang')) $('ulang').onclick=function(){
@@ -339,6 +367,70 @@ function layarHasil(j){
     });
   };
   window.scrollTo(0,0);
+}
+
+/* ---------- buklet ---------- */
+function tesTerkirim(tes){ var x=S?baca('bestie_tes_'+S.kode+'_'+tes):null; return !!(x && x.terkirim); }
+/* buklet hanya tampil setelah pre-test (atau pre-test ditutup), dan tidak selama post-test dibuka sebelum siswa mengirim post-test */
+function bukletBoleh(){
+  if(!S || !BUKLET[S.jenjang]) return false;
+  if(S.status==='Ditutup' || S.status==='Selesai') return true;
+  if(S.status==='Post-test dibuka') return tesTerkirim('post');
+  return tesTerkirim('pre');
+}
+function bukletHTML(){
+  if(!bukletBoleh()) return '';
+  return '<div class="card buk"><div class="bukIsi"><div class="bukIkon" aria-hidden="true">📖</div><div><b>Buklet BESTIE '+esc(S.jenjang)+'</b>'+
+    '<div class="bantu">Materi BESTIE untuk dibaca ulang. Bisa juga diunduh sebagai PDF.</div></div></div>'+
+    '<button class="btn biru" type="button" onclick="bukaBuklet()">📖 Baca buklet BESTIE</button></div>';
+}
+function perangkat(){ var p=baca('bestie_perangkat'); if(!p || !/^[A-Za-z0-9]{8,40}$/.test(p)){ p=idBaru(); tulis('bestie_perangkat', p); } return p; }
+/* dicatat sekali per HP per sesi per jenis (lihat/unduh); diam-diam, tidak mengganggu siswa bila gagal */
+function catatBuklet(jenis){
+  if(!S) return; var k='bestie_buklet_'+S.kode+'_'+jenis;
+  if(baca(k)) return;
+  minta({ action:'buklet', kode:S.kode, jenis:jenis, perangkat:perangkat() }, { maks:4 }).then(function(j){ if(j.ok) tulis(k, 1); }).catch(function(){});
+}
+var bJenjang = '', bTunda = false, bRiwayat = false;
+function bukaBuklet(){
+  if(!bukletBoleh()) return;
+  var B=BUKLET[S.jenjang], o=$('buklet');
+  if(!o){
+    o=document.createElement('div'); o.id='buklet'; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true'); o.setAttribute('aria-label','Buklet BESTIE');
+    o.innerHTML='<div class="bBar"><span class="bJudul" id="bJudul"></span>'+
+      '<a class="bTombol bUnduh" id="bUnduh" download>⬇ Unduh PDF</a><button type="button" class="bTombol bTutup" id="bTutup">✕ Tutup</button></div>'+
+      '<div class="bPita hide" id="bPita"><span>Post-test dibuka</span><button type="button" id="bPitaMulai">Mulai</button></div>'+
+      '<div class="bBadan"><div class="bMuat" id="bMuat"><div class="putar"></div>Memuat buklet…</div><iframe id="bFrame" title="Buklet BESTIE"></iframe>'+
+      '<div class="bDialog hide" id="bDialog"><div class="card"><div class="ok" style="background:#fff4c2;color:#6b5300">✎</div><h2>Post-test sudah dibuka!</h2>'+
+      '<p class="bantu" style="margin:0">Kamu bisa langsung mengerjakan post-test sekarang.</p>'+
+      '<div class="nav"><button class="btn" type="button" id="bMulai">Mulai post-test</button><button class="btn garis" type="button" id="bNanti">Nanti</button></div></div></div></div>';
+    document.body.appendChild(o);
+    $('bTutup').onclick=tutupBuklet;
+    $('bMulai').onclick=tutupBuklet; $('bPitaMulai').onclick=tutupBuklet;
+    $('bNanti').onclick=function(){ bTunda=true; cekPostBuklet(); };
+    $('bUnduh').onclick=function(){ catatBuklet('unduh'); };
+    $('bFrame').onload=function(){ if(this.getAttribute('src')){ $('bMuat').classList.add('hide'); this.style.visibility='visible'; } };
+  }
+  $('bJudul').innerHTML='Buklet <span class="bPanjang">BESTIE · </span>'+esc(S.jenjang);
+  $('bUnduh').href=B.pdf; $('bUnduh').setAttribute('download', B.pdf.split('/').pop());
+  if(bJenjang!==S.jenjang){ bJenjang=S.jenjang; $('bMuat').classList.remove('hide'); $('bFrame').style.visibility='hidden'; $('bFrame').src=B.html; }
+  o.classList.remove('hide'); document.body.classList.add('bukaBuklet');
+  bTunda=false; cekPostBuklet();
+  try{ history.pushState({ buklet:1 }, '', location.href); bRiwayat=true; }catch(e){ bRiwayat=false; }
+  catatBuklet('lihat');
+}
+function bukletTerbuka(){ var o=$('buklet'); return !!(o && !o.classList.contains('hide')); }
+function sembunyikanBuklet(){ var o=$('buklet'); if(o) o.classList.add('hide'); document.body.classList.remove('bukaBuklet'); }
+/* tombol Tutup: kembali lewat riwayat supaya gestur "kembali" di HP juga menutup buklet */
+function tutupBuklet(){ if(!bukletTerbuka()) return; if(bRiwayat){ bRiwayat=false; history.back(); } else sembunyikanBuklet(); window.scrollTo(0,0); }
+window.addEventListener('popstate', function(){ if(bukletTerbuka()){ bRiwayat=false; sembunyikanBuklet(); } });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape' && bukletTerbuka()) tutupBuklet(); });
+/* pemberitahuan saat post-test dibuka ketika siswa sedang membaca buklet (tidak pindah otomatis) */
+function cekPostBuklet(){
+  if(!$('buklet')) return;
+  var post = bukletTerbuka() && S && S.tes==='post' && !tesTerkirim('post');
+  $('bDialog').classList.toggle('hide', !post || bTunda);
+  $('bPita').classList.toggle('hide', !post || !bTunda);
 }
 
 /* logo: konfirmasi bila sedang mengerjakan dan belum terkirim */
