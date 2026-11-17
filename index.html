@@ -410,7 +410,7 @@ function bukaBuklet(){
     $('bTutup').onclick=tutupBuklet;
     $('bMulai').onclick=tutupBuklet; $('bPitaMulai').onclick=tutupBuklet;
     $('bNanti').onclick=function(){ bTunda=true; cekPostBuklet(); };
-    $('bUnduh').onclick=function(){ catatBuklet('unduh'); };
+    $('bUnduh').onclick=unduhBuklet;
     $('bFrame').onload=function(){ if(this.getAttribute('src')){ $('bMuat').classList.add('hide'); this.style.visibility='visible'; } };
   }
   $('bJudul').innerHTML='Buklet <span class="bPanjang">BESTIE · </span>'+esc(labelJenjang(S.jenjang));
@@ -420,6 +420,25 @@ function bukaBuklet(){
   bTunda=false; cekPostBuklet();
   try{ history.pushState({ buklet:1 }, '', location.href); bRiwayat=true; }catch(e){ bRiwayat=false; }
   catatBuklet('lihat');
+}
+/* iPhone/iPad: Safari membuka PDF alih-alih mengunduh. PDF diambil dulu sebagai blob (octet-stream) lalu diunduh, sehingga muncul "Unduh?" dan siswa tetap di halaman. */
+function iOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1); }
+var bBlob = null, bSiap = false;
+function unduhBuklet(e){
+  catatBuklet('unduh');
+  if(!iOS() || !window.fetch || !window.Blob || !window.URL) return;      // perangkat lain: unduhan biasa
+  e.preventDefault(); if(bSiap) return;
+  var a=this, B=BUKLET[S.jenjang], nama=B.pdf.split('/').pop(), teks=a.innerHTML;
+  function simpan(url){ var t=document.createElement('a'); t.href=url; t.download=nama; t.style.display='none'; document.body.appendChild(t); t.click(); setTimeout(function(){ t.remove(); }, 1000); }
+  if(bBlob && bBlob.pdf===B.pdf){ simpan(bBlob.url); return; }
+  bSiap=true; a.innerHTML='Menyiapkan…';
+  fetch(B.pdf).then(function(r){ if(!r.ok) throw new Error(); return r.arrayBuffer(); }).then(function(buf){
+    if(bBlob) URL.revokeObjectURL(bBlob.url);
+    bBlob={ pdf:B.pdf, url:URL.createObjectURL(new Blob([buf], { type:'application/octet-stream' })) };
+    a.innerHTML=teks; simpan(bBlob.url);
+  }).catch(function(){
+    a.innerHTML='Gagal, ulangi'; setTimeout(function(){ a.innerHTML=teks; }, 2500);
+  }).then(function(){ bSiap=false; });
 }
 function bukletTerbuka(){ var o=$('buklet'); return !!(o && !o.classList.contains('hide')); }
 function sembunyikanBuklet(){ var o=$('buklet'); if(o) o.classList.add('hide'); document.body.classList.remove('bukaBuklet'); }
