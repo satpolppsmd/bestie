@@ -168,7 +168,7 @@ function kirimKe(url, data, ms){
     .then(function(r){ return r.text().then(function(x){ if(t) clearTimeout(t); return { status:r.status, teks:x }; }); }, function(e){ if(t) clearTimeout(t); throw e; });
 }
 function minta(data, opsi){
-  opsi = opsi || {}; var maks = opsi.maks || 8, ke = 0, gagalCF = 0;
+  opsi = opsi || {}; var maks = opsi.maks || 8, ke = 0, gagalCF = 0, gagalJar = 0;
   return new Promise(function(berhasil, gagal){
     function coba(){
       var cf = cfAktif();
@@ -187,6 +187,10 @@ function minta(data, opsi){
         .catch(function(e){
           if(cf && !(e && e.ulang)){                                     // Cloudflare tidak menjawab dengan benar
             if(e && e.ganti) return coba();
+            if(!(e && e.cf)){                                              // Cloudflare tidak terjangkau (mis. workers.dev diblokir provider)
+              if(++gagalJar >= 2){ pakaiCadangan(8*3600000); return coba(); }   // pakai Apps Script 8 jam: tidak tertahan lagi
+              return setTimeout(coba, 800);
+            }
             if(++gagalCF >= 4){ pakaiCadangan(10*60000); return coba(); }   // 4x gagal berturut-turut: pakai Apps Script 10 menit
             return setTimeout(coba, 1000 + Math.random()*1500*gagalCF);       // padat sesaat: coba lagi dengan jeda acak
           }
