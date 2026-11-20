@@ -119,6 +119,25 @@ body.bukaBuklet{overflow:hidden}
 #buklet .bDialog .card{max-width:360px;width:100%;text-align:center;margin:0}
 #buklet .bDialog h2{font-size:1.15rem;margin:4px 0 6px}
 #buklet .bDialog .nav{flex-direction:column;gap:8px;margin-top:14px}
+/* mode langsung (ala Kahoot) */
+.lvKepala{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:.92rem;color:var(--abu);margin-bottom:8px}
+.lvKepala .lvPoin{background:var(--biru);color:#fff;border-radius:20px;padding:4px 11px;font-size:.85rem}
+.lvTanya{font-size:1.12rem;font-weight:700;line-height:1.4;margin:4px 0 12px}
+.lvPil{display:grid;gap:9px}
+.lvPil button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:12px;padding:13px 12px;color:#fff;font-size:1rem;font-weight:600;font-family:inherit;cursor:pointer;min-height:58px;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.lvPil button .bt{flex:none;width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:1rem}
+.lvPil button.w0{background:#e21b3c}.lvPil button.w1{background:#1368ce}.lvPil button.w2{background:#c79100}.lvPil button.w3{background:#26890c}
+.lvPil button:disabled{opacity:.35;cursor:default}
+.lvPil button.dipilih{opacity:1;outline:4px solid #1d2433;outline-offset:2px}
+.lvPil button.kunci{opacity:1}
+.lvJam{height:10px;border-radius:6px;background:var(--garis);overflow:hidden;margin:2px 0 12px}
+.lvJam i{display:block;height:100%;background:var(--biru2);transition:width .25s linear}
+.lvBesar{font-size:3.2rem;font-weight:800;color:var(--biru);text-align:center;line-height:1.1;margin:8px 0}
+.lvHasil{border-radius:14px;padding:16px;text-align:center;color:#fff;margin-bottom:12px}
+.lvHasil.benar{background:#26890c}.lvHasil.salah{background:#e21b3c}.lvHasil.kosong{background:#5b6577}
+.lvHasil h2{margin:0 0 4px;color:#fff}
+.lvRank{display:flex;justify-content:space-around;text-align:center;margin-top:6px}
+.lvRank b{display:block;font-size:1.6rem;color:var(--biru)}
 </style>
 </head>
 <body>
@@ -278,6 +297,23 @@ function tampilSesi(){
     return;
   }
   var id = baca('bestie_identitas') || {};
+  var draf = identitasDraf(); if(draf) id = draf;              // isian yang sedang diketik tidak hilang saat layar diperbarui
+  if(S.tes==='post'){
+    var lvs = baca('bestie_live_'+S.kode);
+    if(lvs && lvs.identitas && (S.langsung || lvs.tunggu)){ mulaiLive(lvs.identitas, true); return; }
+  }
+  if(S.tes==='post' && S.langsung){
+    h += '<div class="card"><span class="pita">Post-test mode permainan</span><h2>Isi identitasmu</h2>'+
+      '<label for="nama">Nama lengkap</label><input type="text" id="nama" maxlength="80" autocomplete="name" value="'+esc(id.nama||'')+'">'+
+      '<div class="dua"><div><label for="kelas">Kelas</label><input type="text" id="kelas" maxlength="12" placeholder="mis. 8B" autocomplete="off" value="'+esc(id.kelas||'')+'"></div>'+
+      '<div><label for="absen">No. absen</label><input type="tel" id="absen" maxlength="3" inputmode="numeric" placeholder="mis. 12" autocomplete="off" value="'+esc(id.absen||'')+'"></div></div>'+
+      '<p class="bantu">Isi sama persis seperti saat pre-test.</p><div class="galat" id="galat"></div>'+
+      '<p class="bantu" style="margin:12px 0">Post-test kali ini dimainkan bersama satu kelas. Soal tampil di layar depan dan di HP-mu, '+S.soal.length+' soal, masing-masing 20 detik. Jawab benar dan cepat untuk poin lebih besar!</p>'+
+      '<button class="btn" id="mulaiTes">Gabung permainan</button></div>';
+    $('isi').innerHTML = h;
+    $('mulaiTes').onclick = function(){ var x=ambilIdentitas(); if(x) mulaiLive(x); };
+    return;
+  }
   h += '<div class="card"><span class="pita">'+namaTes(S.tes)+' dibuka</span><h2>Isi identitasmu</h2>'+
     '<label for="nama">Nama lengkap</label><input type="text" id="nama" maxlength="80" autocomplete="name" value="'+esc(id.nama||'')+'">'+
     '<div class="dua"><div><label for="kelas">Kelas</label><input type="text" id="kelas" maxlength="12" placeholder="mis. 8B" autocomplete="off" value="'+esc(id.kelas||'')+'"></div>'+
@@ -287,15 +323,22 @@ function tampilSesi(){
     '<p class="bantu" style="margin:12px 0">'+S.soal.length+' soal pilihan ganda · waktu '+(DURASI/60)+' menit · '+(S.tes==='pre'?'hanya bisa dikerjakan sekali':'boleh dikerjakan paling banyak 2 kali, nilai terbaik yang dipakai')+'</p>'+
     '<button class="btn" id="mulaiTes">Mulai '+namaTes(S.tes)+'</button></div>';
   $('isi').innerHTML = h;
-  $('mulaiTes').onclick = function(){
-    var nama=$('nama').value.replace(/\s+/g,' ').trim(), kelas=$('kelas').value.toUpperCase().replace(/\s+/g,''), absen=$('absen').value.replace(/\D/g,'');
-    var g=$('galat');
-    if(nama.length<2){ g.textContent='Nama wajib diisi.'; $('nama').focus(); return; }
-    if(!kelas){ g.textContent='Kelas wajib diisi.'; $('kelas').focus(); return; }
-    if(!absen || +absen<1){ g.textContent='Nomor absen wajib diisi dengan angka.'; $('absen').focus(); return; }
-    tulis('bestie_identitas', { nama:nama, kelas:kelas, absen:String(+absen) });
-    mulaiTes({ nama:nama, kelas:kelas, absen:String(+absen) });
-  };
+  $('mulaiTes').onclick = function(){ var x=ambilIdentitas(); if(x) mulaiTes(x); };
+  if(S.tes==='post' && cfAktif()) mulaiPoll();                       // pantau: pendamping bisa memulai mode permainan
+}
+function identitasDraf(){
+  if(!$('nama') || !$('kelas') || !$('absen')) return null;
+  return { nama:$('nama').value, kelas:$('kelas').value, absen:$('absen').value };
+}
+function ambilIdentitas(){
+  var nama=$('nama').value.replace(/\s+/g,' ').trim(), kelas=$('kelas').value.toUpperCase().replace(/\s+/g,''), absen=$('absen').value.replace(/\D/g,'');
+  var g=$('galat');
+  if(nama.length<2){ g.textContent='Nama wajib diisi.'; $('nama').focus(); return null; }
+  if(!kelas){ g.textContent='Kelas wajib diisi.'; $('kelas').focus(); return null; }
+  if(!absen || +absen<1){ g.textContent='Nomor absen wajib diisi dengan angka.'; $('absen').focus(); return null; }
+  var x={ nama:nama, kelas:kelas, absen:String(+absen) };
+  tulis('bestie_identitas', x); berhentiPoll();
+  return x;
 }
 
 /* Menunggu tes dibuka. Jalur Cloudflare: "menunggu kabar" (satu permintaan ditahan ±4 menit, status baru tiba ±5 detik).
@@ -307,13 +350,14 @@ function mulaiPoll(){
   tPoll=setInterval(function(){ if(document.visibilityState==='visible') muatSesi(S.kode, true); }, 45000 + Math.floor(Math.random()*10000));
 }
 function tungguKabar(gagal){
-  var token = {}; tTunggu = token; var st = S.status, kode = S.kode;
-  kirimKe(cfUrl(), { action:'tunggu', kode:kode, status:st }, 290000).then(function(r){
+  var token = {}; tTunggu = token; var st = S.status, kode = S.kode, lv = S.tes==='post' ? !!S.langsung : null;
+  var minta1 = { action:'tunggu', kode:kode, status:st }; if(lv!==null) minta1.langsung = lv;
+  kirimKe(cfUrl(), minta1, 290000).then(function(r){
     if(tTunggu!==token) return;
     var j = JSON.parse(r.teks);
     if(!j.ok){ if(j.cadangan) pakaiCadangan(2*60000); throw 0; }
     if(!S || S.kode!==kode) return;
-    if(j.status!==S.status){ S=j; tampilSesi(); return; }          // tampilSesi memulai penantian berikutnya bila perlu
+    if(j.status!==S.status || (lv!==null && !!j.langsung!==lv)){ S=j; tampilSesi(); return; }          // tampilSesi memulai penantian berikutnya bila perlu
     tungguKabar(0);
   }).catch(function(){
     if(tTunggu!==token) return;
@@ -421,6 +465,7 @@ function bandingHTML(pre, post){
 function layarHasil(j){
   if(tJam){ clearInterval(tJam); tJam=null; }
   if(j.perluKuesioner && j.kuesioner && j.kuesioner.length){ layarKuesioner(j.kuesioner); return; }
+  var kueNanti = j.kuesionerNanti && j.kuesionerNanti.length ? j.kuesionerNanti : null;   // mode permainan: nilai dulu, kuesioner sesudahnya
   $('batang').classList.add('hide'); kepalaKecil(false);
   var h='<div class="card tengah">';
   if(j.sudah){
@@ -434,13 +479,16 @@ function layarHasil(j){
     h+='<p class="bantu" style="margin:0">Nilai post-test '+(j.percobaan>1?'ke-'+j.percobaan:'')+'</p><div class="skor">'+j.skor+'</div>'+
       '<p style="margin:4px 0 10px">'+(j.benar!=null?'Benar '+j.benar+' dari '+j.jumlah+' soal':'')+(j.percobaan>1?(j.benar!=null?' · ':'')+'nilai tertinggimu <b>'+j.tertinggi+'</b>':'')+'</p>'+
       bandingHTML(j.pre, j.tertinggi);
-    if(j.sisa>0) h+='<p class="bantu">Kamu masih punya '+j.sisa+' kesempatan lagi. Nilai terbaik yang dipakai.</p><button class="btn garis" id="ulang" style="margin-top:6px">Kerjakan ulang post-test</button>';
+    if(kueNanti) h+='<div class="card" style="margin:12px 0 0;background:#fff8d6;box-shadow:none"><b>Satu langkah lagi!</b><p class="bantu" style="margin:4px 0 10px">Isi kuesioner singkat tentang kegiatan BESTIE hari ini.</p><button class="btn" id="isiKue">Isi kuesioner</button></div>';
+    else if(j.sisa>0) h+='<p class="bantu">Kamu masih punya '+j.sisa+' kesempatan lagi. Nilai terbaik yang dipakai.</p><button class="btn garis" id="ulang" style="margin-top:6px">Kerjakan ulang post-test</button>';
     else h+='<p class="bantu">Terima kasih sudah mengikuti BESTIE!</p>';
   }
+  if(j.habis && kueNanti) h+='<button class="btn" id="isiKue" style="margin-top:10px">Isi kuesioner</button>';
   h+='<div class="kaki" style="margin-top:14px">'+esc(S?S.sekolah:'')+' · '+(T?esc(T.identitas.nama)+' · Kelas '+esc(T.identitas.kelas)+' · No. '+esc(T.identitas.absen):'')+'</div></div>';
   h+=bukletHTML();
   $('isi').innerHTML=h;
   if(S && (j.tes==='pre' || j.sudah)) mulaiPoll();   // lanjut otomatis ke post-test saat dibuka
+  if($('isiKue')) $('isiKue').onclick=function(){ layarKuesioner(kueNanti); };
   if($('ulang')) $('ulang').onclick=function(){
     if(!confirm('Kerjakan ulang post-test? Ini kesempatan terakhirmu, dan nilai terbaik yang akan dipakai.')) return;
     muatSesi(S.kode, true).then(function(){
@@ -449,6 +497,126 @@ function layarHasil(j){
     });
   };
   window.scrollTo(0,0);
+}
+
+/* ---------- mode langsung (post-test ala Kahoot) ---------- */
+/* Hanya lewat jalur Cloudflare. Soal maju bersamaan dipandu pendamping; HP menunggu kabar (versi) lalu menampilkan keadaan terbaru. */
+var LV = null, LV_W = ['w0','w1','w2','w3'], LV_B = ['▲','◆','●','■'];
+function lvSimpan(){ if(LV) tulis('bestie_live_'+LV.kode, { identitas:LV.identitas, jawab:LV.jawab, tunggu:LV.tunggu||false }); }
+function lvMinta(data, kali){
+  kali = kali || 0;
+  return kirimKe(cfUrl(), data, 30000).then(function(r){
+    var j; try{ j=JSON.parse(r.teks); }catch(e){ j=null; }
+    if(!j || r.status>=500 || r.status===429) throw { ulang:true };
+    return j;
+  }).catch(function(e){
+    if(kali>=6) throw new Error('Koneksi ke server permainan terputus. Periksa internet.');
+    return new Promise(function(ok){ setTimeout(ok, 700 + Math.random()*900*(kali+1)); }).then(function(){ return lvMinta(data, kali+1); });
+  });
+}
+function mulaiLive(identitas, lanjut){
+  berhentiPoll(); kepalaKecil(true); $('batang').classList.add('hide');
+  var lama = baca('bestie_live_'+S.kode) || {};
+  LV = { kode:S.kode, identitas:identitas, jawab:(lanjut && lama.jawab) || {}, versi:-1, st:null, token:{}, tunggu:true };
+  lvSimpan();
+  layarMuat('Masuk ke permainan…');
+  var d = { action:'liveGabung', kode:S.kode, nama:identitas.nama, kelas:identitas.kelas, absen:identitas.absen };
+  lvMinta(d).then(function(j){
+    if(!j.ok){ if(j.tidakLangsung){ return lvSelesai(); } throw new Error(j.error); }
+    lvTampil(j); lvTunggu();
+  }).catch(function(e){ lvGalat(e.message); });
+}
+function lvGalat(pesan){
+  $('isi').innerHTML='<div class="card"><div class="galat">'+esc(pesan)+'</div><button class="btn biru" id="lvUlang">Coba lagi</button></div>';
+  $('lvUlang').onclick=function(){ mulaiLive(LV.identitas, true); };
+}
+function lvTunggu(){
+  var token = {}; LV.token = token;
+  lvMinta({ action:'liveTunggu', kode:LV.kode, kelas:LV.identitas.kelas, absen:LV.identitas.absen, versi:LV.versi }).then(function(j){
+    if(LV.token!==token) return;
+    if(!j.ok){ if(j.tidakLangsung) return lvSelesai(); throw new Error(j.error); }
+    var baru = j.versi!==LV.versi;
+    if(baru) lvTampil(j);
+    if(j.tahap==='akhir') return setTimeout(lvSelesai, baru ? 5000 : 0);   // tampilkan peringkat akhir sebentar
+    lvTunggu();
+  }).catch(function(e){ if(LV.token===token) lvGalat(e.message); });
+}
+function lvKepala(j){
+  var t = j.saya && j.saya.total ? j.saya.total : 0;
+  return '<div class="lvKepala"><span>'+(j.i>=0 && j.tahap!=='lobi' ? 'Soal '+(j.i+1)+' dari '+j.n : 'Mode permainan')+'</span><span class="lvPoin">'+t+' poin</span></div>';
+}
+var lvJam = null;
+function lvTampil(j){
+  LV.versi = j.versi; LV.st = j; LV.tiba = Date.now();
+  if(lvJam){ clearInterval(lvJam); lvJam=null; }
+  var id = LV.identitas, h = '<div class="card">'+lvKepala(j);
+  if(j.tahap==='lobi'){
+    h += '<div class="ok" style="background:#e8f6ec">✓</div><h2 class="tengah">Kamu sudah masuk!</h2><p class="tengah" style="margin:0">'+esc(id.nama)+' · Kelas '+esc(id.kelas)+' · No. '+esc(id.absen)+'</p>'+
+      '<div class="tunggu" style="margin-top:12px"><div class="putar"></div><b>Tunggu pendamping memulai permainan</b>Lihat layar depan. Soal pertama akan muncul sendiri di HP ini.</div></div>';
+    $('isi').innerHTML = h; return;
+  }
+  if(j.tahap==='soal'){
+    var mulaiPada = LV.tiba + j.mulaiDalam, batasPada = LV.tiba + j.sisaMs, sudah = LV.jawab[j.i];
+    h += '<p class="lvTanya">'+esc(j.soal.t)+'</p><div class="lvJam"><i id="lvJam" style="width:100%"></i></div><div id="lvIsi"></div></div>';
+    $('isi').innerHTML = h; window.scrollTo(0,0);
+    var tampilPil = function(){
+      var sisa = batasPada - Date.now(), siap = mulaiPada - Date.now(), x = $('lvIsi'); if(!x) return;
+      if(siap > 0){ x.innerHTML = '<div class="lvBesar">'+Math.ceil(siap/1000)+'</div><p class="tengah bantu">Siap-siap…</p>'; return false; }
+      if(sudah!==undefined){ x.innerHTML = '<div class="ok" style="background:#e8f6ec">✓</div><p class="tengah"><b>Jawaban terkirim!</b><br>Tunggu hasilnya di layar depan.</p>'; return true; }
+      if(sisa <= 0){ x.innerHTML = '<p class="tengah"><b>Waktu habis.</b><br>Tunggu hasilnya…</p>'; return true; }
+      x.innerHTML = '<div class="lvPil">'+j.soal.p.map(function(p,k){ return '<button type="button" class="'+LV_W[k]+'" data-p="'+k+'"><span class="bt">'+LV_B[k]+'</span><span>'+esc(p)+'</span></button>'; }).join('')+'</div>';
+      [].forEach.call(x.querySelectorAll('button'), function(b){ b.onclick=function(){
+        var p = +b.getAttribute('data-p'); sudah = p; LV.jawab[j.i] = p; lvSimpan();
+        [].forEach.call(x.querySelectorAll('button'), function(y){ y.disabled = true; y.classList.toggle('dipilih', y===b); });
+        lvMinta({ action:'liveJawab', kode:LV.kode, kelas:id.kelas, absen:id.absen, i:j.i, pilihan:p }).then(function(r){
+          if(!r.ok && r.telat){ var x2=$('lvIsi'); if(x2) x2.innerHTML='<p class="tengah"><b>Terlambat, waktu sudah habis.</b><br>Tunggu soal berikutnya.</p>'; }
+          else tampilPil();
+        }).catch(function(){ tampilPil(); });
+      }; });
+      return true;
+    };
+    var tahapPil = null;
+    var detak = function(){
+      var sisa = Math.max(0, batasPada - Date.now()), bar = $('lvJam');
+      if(bar) bar.style.width = (Math.min(1, sisa / (20000)) * 100) + '%';
+      var siap = mulaiPada > Date.now(), keadaan = siap ? 'siap' : (sudah!==undefined ? 'sudah' : (sisa<=0 ? 'habis' : 'jawab'));
+      if(siap || keadaan!==tahapPil){ tahapPil = keadaan; tampilPil(); }
+    };
+    detak(); lvJam = setInterval(detak, 250);
+    return;
+  }
+  if(j.tahap==='hasil'){
+    var s = j.saya || {}, k = j.kunci, kelas = s.pilihan==null ? 'kosong' : (s.pilihan===k ? 'benar' : 'salah');
+    h += '<div class="lvHasil '+kelas+'"><h2>'+(kelas==='benar'?'✓ Benar!':kelas==='salah'?'✗ Kurang tepat':'Tidak menjawab')+'</h2>'+(kelas==='benar'?'+'+s.poin+' poin':'')+'</div>'+
+      '<p style="margin:0 0 6px" class="bantu">Jawaban yang benar:</p><div class="lvPil"><button type="button" class="'+LV_W[k]+' kunci" disabled><span class="bt">'+LV_B[k]+'</span><span>'+esc(j.soal.p[k])+'</span></button></div>'+
+      '<div class="lvRank" style="margin-top:14px"><div><b>'+(s.peringkat||'–')+'</b><span class="bantu">peringkat dari '+j.peserta+'</span></div><div><b>'+(s.total||0)+'</b><span class="bantu">total poin</span></div></div>'+
+      '<p class="tengah bantu" style="margin-top:12px">'+(j.i+1<j.n?'Soal berikutnya muncul sendiri.':'Itu soal terakhir. Tunggu pengumuman juara!')+'</p></div>';
+    $('isi').innerHTML = h; window.scrollTo(0,0); return;
+  }
+  if(j.tahap==='akhir'){
+    var sa = j.saya || {};
+    h += '<h2 class="tengah">Permainan selesai!</h2><div class="lvRank"><div><b>'+(sa.peringkat||'–')+'</b><span class="bantu">peringkat dari '+j.peserta+'</span></div><div><b>'+(sa.total||0)+'</b><span class="bantu">total poin</span></div></div>'+
+      '<div class="tunggu" style="margin-top:12px"><div class="putar"></div><b>Menyiapkan nilai post-test…</b></div></div>';
+    $('isi').innerHTML = h;
+  }
+}
+/* Permainan selesai: ambil hasil sebagai post-test biasa (kuesioner → nilai → buklet). */
+function lvSelesai(){
+  if(lvJam){ clearInterval(lvJam); lvJam=null; }
+  if(!LV) return muatSesi(S.kode);
+  LV.tunggu = true; lvSimpan();
+  var id = LV.identitas;
+  lvMinta({ action:'liveSelesai', kode:LV.kode, kelas:id.kelas, absen:id.absen }).then(function(j){
+    if(!j.ok && !j.habis && !j.perluKuesioner){
+      tulis('bestie_live_'+LV.kode, null); LV = null;
+      if(j.belumTercatat || /belum selesai/.test(j.error||'')){ muatSesi(S.kode); return; }     // dihentikan: kembali ke post-test biasa
+      throw new Error(j.error);
+    }
+    T = { kode:LV.kode, tes:'post', identitas:id, mulai:Date.now(), posisi:0, jawaban:{}, idKirim:j.idKirim || ('L'+idBaru()), langsung:true,
+      soal:(S.soal||[]).map(function(q){ return { id:q.id, t:q.t, p:q.p, urut:[0,1,2,3] }; }), terkirim:true, hasil:j };
+    tulis(kunciTes(), T); tulis('bestie_live_'+LV.kode, null); LV = null;
+    layarHasil(j);
+  }).catch(function(e){ lvGalat(e.message); });
 }
 
 /* ---------- kuesioner pelaksanaan (wajib, sebelum nilai post-test tampil) ---------- */
@@ -460,7 +628,7 @@ function layarKuesioner(butir){
   function hitung(){ var n=butir.filter(function(q){ return T.kues.jawaban[q.id]; }).length;
     $('bLbl').textContent='Kuesioner · '+n+' dari '+butir.length+' terisi'; $('prog').style.width=(n/butir.length*100)+'%'; return n; }
   $('isi').innerHTML='<div class="card"><div class="ok" style="background:#e8f6ec">✓</div><h2 class="tengah" style="margin-bottom:6px">Post-test terkirim!</h2>'+
-    '<p class="tengah" style="margin:0 0 12px">Satu langkah lagi. Isi kuesioner singkat tentang kegiatan BESTIE hari ini, lalu nilaimu akan muncul.</p>'+
+    '<p class="tengah" style="margin:0 0 12px">'+(T.langsung?'Isi kuesioner singkat tentang kegiatan BESTIE hari ini.':'Satu langkah lagi. Isi kuesioner singkat tentang kegiatan BESTIE hari ini, lalu nilaimu akan muncul.')+'</p>'+
     '<p class="kueAtas">Pilih satu angka untuk setiap pernyataan: <b>1</b> = sangat tidak setuju sampai <b>5</b> = sangat setuju. Jawab sejujurnya. Jawabanmu <b>tidak memengaruhi nilai</b>.</p>'+
     butir.map(function(q,i){ return '<div class="butir" data-id="'+esc(q.id)+'"><p class="tanyaK"><i>'+(i+1)+'.</i>'+esc(q.t)+'</p><div class="lik" role="radiogroup" aria-label="Pernyataan '+(i+1)+'">'+
       LIKERT.map(function(l,k){ var v=k+1; return '<button type="button" role="radio" data-v="'+v+'" aria-checked="'+(T.kues.jawaban[q.id]===v)+'" class="'+(T.kues.jawaban[q.id]===v?'on':'')+'"><b>'+v+'</b><span>'+l+'</span></button>'; }).join('')+'</div></div>'; }).join('')+
