@@ -306,7 +306,7 @@ function tampilSesi(){
     h += '<div class="card"><span class="pita">Post-test mode permainan</span><h2>Isi identitasmu</h2>'+
       '<label for="nama">Nama lengkap</label><input type="text" id="nama" maxlength="80" autocomplete="name" value="'+esc(id.nama||'')+'">'+
       '<div class="dua"><div><label for="kelas">Kelas</label><input type="text" id="kelas" maxlength="12" placeholder="mis. 8B" autocomplete="off" value="'+esc(id.kelas||'')+'"></div>'+
-      '<div><label for="absen">No. absen</label><input type="tel" id="absen" maxlength="3" inputmode="numeric" placeholder="mis. 12" autocomplete="off" value="'+esc(id.absen||'')+'"></div></div>'+
+      '<div><label for="absen">No. absen di kelas</label><input type="tel" id="absen" maxlength="3" inputmode="numeric" placeholder="mis. 12" autocomplete="off" value="'+esc(id.absen||'')+'"></div></div>'+
       '<p class="bantu">Isi sama persis seperti saat pre-test.</p><div class="galat" id="galat"></div>'+
       '<p class="bantu" style="margin:12px 0">Post-test kali ini dimainkan bersama satu kelas. Soal tampil di layar depan dan di HP-mu, '+S.soal.length+' soal, masing-masing 20 detik. Jawab benar dan cepat untuk poin lebih besar!</p>'+
       '<button class="btn" id="mulaiTes">Gabung permainan</button></div>';
@@ -317,7 +317,7 @@ function tampilSesi(){
   h += '<div class="card"><span class="pita">'+namaTes(S.tes)+' dibuka</span><h2>Isi identitasmu</h2>'+
     '<label for="nama">Nama lengkap</label><input type="text" id="nama" maxlength="80" autocomplete="name" value="'+esc(id.nama||'')+'">'+
     '<div class="dua"><div><label for="kelas">Kelas</label><input type="text" id="kelas" maxlength="12" placeholder="mis. 8B" autocomplete="off" value="'+esc(id.kelas||'')+'"></div>'+
-    '<div><label for="absen">No. absen</label><input type="tel" id="absen" maxlength="3" inputmode="numeric" placeholder="mis. 12" autocomplete="off" value="'+esc(id.absen||'')+'"></div></div>'+
+    '<div><label for="absen">No. absen di kelas</label><input type="tel" id="absen" maxlength="3" inputmode="numeric" placeholder="mis. 12" autocomplete="off" value="'+esc(id.absen||'')+'"></div></div>'+
     '<p class="bantu">Isi sama persis saat pre-test dan post-test agar nilaimu bisa dipasangkan.</p>'+
     '<div class="galat" id="galat"></div>'+
     '<p class="bantu" style="margin:12px 0">'+S.soal.length+' soal pilihan ganda · waktu '+(DURASI/60)+' menit · '+(S.tes==='pre'?'hanya bisa dikerjakan sekali':'boleh dikerjakan paling banyak 2 kali, nilai terbaik yang dipakai')+'</p>'+
@@ -335,7 +335,7 @@ function ambilIdentitas(){
   var g=$('galat');
   if(nama.length<2){ g.textContent='Nama wajib diisi.'; $('nama').focus(); return null; }
   if(!kelas){ g.textContent='Kelas wajib diisi.'; $('kelas').focus(); return null; }
-  if(!absen || +absen<1){ g.textContent='Nomor absen wajib diisi dengan angka.'; $('absen').focus(); return null; }
+  if(!absen || +absen<1){ g.textContent='No. absen di kelas wajib diisi dengan angka.'; $('absen').focus(); return null; }
   var x={ nama:nama, kelas:kelas, absen:String(+absen) };
   tulis('bestie_identitas', x); berhentiPoll();
   return x;
