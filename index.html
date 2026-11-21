@@ -508,7 +508,7 @@ function layarHasil(j){
 /* ---------- mode langsung (post-test ala Kahoot) ---------- */
 /* Hanya lewat jalur Cloudflare. Soal maju bersamaan dipandu pendamping; HP menunggu kabar (versi) lalu menampilkan keadaan terbaru. */
 var LV = null, LV_W = ['w0','w1','w2','w3'], LV_B = ['▲','◆','●','■'];
-function lvSimpan(){ if(LV) tulis('bestie_live_'+LV.kode, { identitas:LV.identitas, jawab:LV.jawab, tunggu:LV.tunggu||false }); }
+function lvSimpan(){ if(LV) tulis('bestie_live_'+LV.kode, { identitas:LV.identitas, jawab:LV.jawab, tunggu:LV.tunggu||false, akhir:LV.akhir||null }); }
 function lvMinta(data, kali){
   kali = kali || 0;
   return kirimKe(cfUrl(), data, 30000).then(function(r){
@@ -523,7 +523,7 @@ function lvMinta(data, kali){
 function mulaiLive(identitas, lanjut){
   berhentiPoll(); kepalaKecil(true); $('batang').classList.add('hide');
   var lama = baca('bestie_live_'+S.kode) || {};
-  LV = { kode:S.kode, identitas:identitas, jawab:(lanjut && lama.jawab) || {}, versi:-1, st:null, token:{}, tunggu:true };
+  LV = { kode:S.kode, identitas:identitas, jawab:(lanjut && lama.jawab) || {}, versi:-1, st:null, token:{}, tunggu:true, akhir:(lanjut && lama.akhir) || null };
   lvSimpan();
   layarMuat('Masuk ke permainan…');
   var d = { action:'liveGabung', kode:S.kode, nama:identitas.nama, kelas:identitas.kelas, absen:identitas.absen };
@@ -600,9 +600,13 @@ function lvTampil(j){
     $('isi').innerHTML = h; window.scrollTo(0,0); return;
   }
   if(j.tahap==='akhir'){
-    var sa = j.saya || {};
-    h += '<h2 class="tengah">Permainan selesai!</h2><div class="lvRank"><div><b>'+(sa.peringkat||'–')+'</b><span class="bantu">peringkat dari '+j.peserta+'</span></div><div><b>'+(sa.total||0)+'</b><span class="bantu">total poin</span></div></div>'+
-      '<div class="tunggu" style="margin-top:12px"><div class="putar"></div><b>Menyiapkan nilai post-test…</b></div></div>';
+    var sa = j.saya || {}, juara = sa.peringkat && sa.peringkat<=3 && sa.total>0;
+    if(LV){ LV.akhir = { peringkat:sa.peringkat||null, total:sa.total||0 }; lvSimpan(); }
+    // hanya 3 besar yang melihat peringkat & poin (dengan ucapan selamat); semua tetap mengisi kuesioner sebelum nilai tampil
+    h += juara ? '<div class="tengah" style="font-size:52px;line-height:1">🏆</div><h2 class="tengah">Selamat! Kamu juara '+sa.peringkat+'</h2>'+
+        '<div class="lvRank"><div><b>'+sa.peringkat+'</b><span class="bantu">peringkat dari '+j.peserta+'</span></div><div><b>'+(sa.total||0)+'</b><span class="bantu">total poin</span></div></div>'
+      : '<h2 class="tengah">Permainan selesai!</h2><p class="tengah">Terima kasih sudah ikut bermain. Isi kuesioner dulu untuk melihat nilaimu.</p>';
+    h += '<div class="tunggu" style="margin-top:12px"><div class="putar"></div><b>Menyiapkan kuesioner…</b></div></div>';
     $('isi').innerHTML = h;
   }
 }
@@ -618,7 +622,9 @@ function lvSelesai(){
       if(j.belumTercatat || /belum selesai/.test(j.error||'')){ muatSesi(S.kode); return; }     // dihentikan: kembali ke post-test biasa
       throw new Error(j.error);
     }
+    var ak = LV.akhir || {};
     T = { kode:LV.kode, tes:'post', identitas:id, mulai:Date.now(), posisi:0, jawaban:{}, idKirim:j.idKirim || ('L'+idBaru()), langsung:true,
+      juara: ak.peringkat && ak.peringkat<=3 && ak.total>0 ? { peringkat:ak.peringkat, total:ak.total } : null,
       soal:(S.soal||[]).map(function(q){ return { id:q.id, t:q.t, p:q.p, urut:[0,1,2,3] }; }), terkirim:true, hasil:j };
     tulis(kunciTes(), T); tulis('bestie_live_'+LV.kode, null); LV = null;
     layarHasil(j);
@@ -633,8 +639,15 @@ function layarKuesioner(butir){
   $('batang').classList.remove('hide'); $('waktu').classList.add('hide');
   function hitung(){ var n=butir.filter(function(q){ return T.kues.jawaban[q.id]; }).length;
     $('bLbl').textContent='Kuesioner · '+n+' dari '+butir.length+' terisi'; $('prog').style.width=(n/butir.length*100)+'%'; return n; }
-  $('isi').innerHTML='<div class="card"><div class="ok" style="background:#e8f6ec">✓</div><h2 class="tengah" style="margin-bottom:6px">Post-test terkirim!</h2>'+
-    '<p class="tengah" style="margin:0 0 12px">'+(T.langsung?'Isi kuesioner singkat tentang kegiatan BESTIE hari ini.':'Satu langkah lagi. Isi kuesioner singkat tentang kegiatan BESTIE hari ini, lalu nilaimu akan muncul.')+'</p>'+
+  var kepalaK = T.langsung && T.juara
+    ? '<div class="ok" style="background:#fff4c2">🏆</div><h2 class="tengah" style="margin-bottom:6px">Selamat! Kamu juara '+T.juara.peringkat+'</h2>'+
+      '<p class="tengah" style="margin:0 0 12px"><b>'+T.juara.total+' poin</b>. Isi kuesioner singkat tentang kegiatan BESTIE hari ini. Sekali lagi selamat ya!</p>'
+    : T.langsung
+    ? '<div class="ok" style="background:#e8f6ec">✓</div><h2 class="tengah" style="margin-bottom:6px">Permainan selesai!</h2>'+
+      '<p class="tengah" style="margin:0 0 12px">Satu langkah lagi. Isi kuesioner singkat tentang kegiatan BESTIE hari ini, lalu nilaimu akan muncul.</p>'
+    : '<div class="ok" style="background:#e8f6ec">✓</div><h2 class="tengah" style="margin-bottom:6px">Post-test terkirim!</h2>'+
+      '<p class="tengah" style="margin:0 0 12px">Satu langkah lagi. Isi kuesioner singkat tentang kegiatan BESTIE hari ini, lalu nilaimu akan muncul.</p>';
+  $('isi').innerHTML='<div class="card">'+kepalaK+
     '<p class="kueAtas">Pilih satu angka untuk setiap pernyataan: <b>1</b> = sangat tidak setuju sampai <b>5</b> = sangat setuju. Jawab sejujurnya. Jawabanmu <b>tidak memengaruhi nilai</b>.</p>'+
     butir.map(function(q,i){ return '<div class="butir" data-id="'+esc(q.id)+'"><p class="tanyaK"><i>'+(i+1)+'.</i>'+esc(q.t)+'</p><div class="lik" role="radiogroup" aria-label="Pernyataan '+(i+1)+'">'+
       LIKERT.map(function(l,k){ var v=k+1; return '<button type="button" role="radio" data-v="'+v+'" aria-checked="'+(T.kues.jawaban[q.id]===v)+'" class="'+(T.kues.jawaban[q.id]===v?'on':'')+'"><b>'+v+'</b><span>'+l+'</span></button>'; }).join('')+'</div></div>'; }).join('')+
