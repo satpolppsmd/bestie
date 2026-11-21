@@ -100,6 +100,10 @@ textarea{width:100%;padding:12px;border:1.5px solid var(--garis);border-radius:1
 textarea:focus{outline:none;border-color:var(--biru2);box-shadow:0 0 0 3px rgba(31,75,181,.15)}
 /* buklet */
 .buk .bukIsi{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.buk .bukHitung{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;justify-content:space-between;background:#fff4c2;color:#6b5300;border-radius:10px;padding:8px 10px;margin:0 0 12px;font-weight:600;font-size:.92rem}
+.buk .bukHitung b{font-size:1.1rem}
+.buk .bukAksi{display:flex;gap:6px}
+.buk .bukAksi .btn{width:auto;padding:6px 12px;font-size:.85rem;margin:0}
 .buk .bukIkon{flex:none;width:44px;height:44px;border-radius:12px;background:#eef3ff;display:flex;align-items:center;justify-content:center;font-size:24px}
 .buk b{color:var(--biru);font-size:1rem}
 .buk .bantu{margin-top:2px}
@@ -488,6 +492,7 @@ function layarHasil(j){
   h+='<div class="kaki" style="margin-top:14px">'+esc(S?S.sekolah:'')+' · '+(T?esc(T.identitas.nama)+' · Kelas '+esc(T.identitas.kelas)+' · No. '+esc(T.identitas.absen):'')+'</div></div>';
   h+=bukletHTML();
   $('isi').innerHTML=h;
+  if(j.tes==='post' && !j.sudah && !kueNanti) bukletOtomatis();
   if(S && (j.tes==='pre' || j.sudah)) mulaiPoll();   // lanjut otomatis ke post-test saat dibuka
   if($('isiKue')) $('isiKue').onclick=function(){ layarKuesioner(kueNanti); };
   if($('ulang')) $('ulang').onclick=function(){
@@ -683,6 +688,23 @@ function bukletHTML(){
   return '<div class="card buk"><div class="bukIsi"><div class="bukIkon" aria-hidden="true">📖</div><div><b>Buklet BESTIE '+esc(labelJenjang(S.jenjang))+'</b>'+
     '<div class="bantu">Materi BESTIE untuk dibaca ulang. Bisa juga diunduh sebagai PDF.</div></div></div>'+
     '<button class="btn biru" type="button" onclick="bukaBuklet()">📖 Baca buklet BESTIE</button></div>';
+}
+/* Setelah post-test (dan kuesioner) selesai: hitung mundur 5 detik lalu buklet terbuka sendiri; bisa dibuka sekarang atau dibatalkan.
+   Hanya sekali per HP per sesi, supaya tidak terbuka lagi setiap halaman dimuat ulang. */
+var bHitung=null;
+function bukletOtomatis(){
+  if(!bukletBoleh() || !document.querySelector('.buk')) return;
+  var k='bestie_bukotomatis_'+S.kode; if(baca(k)) return;
+  tulis(k, 1);
+  var d=5, kartu=document.querySelector('.buk'), el=document.createElement('div');
+  el.className='bukHitung'; el.setAttribute('role','status');
+  el.innerHTML='<span>Buklet terbuka otomatis dalam <b id="bukDetik">'+d+'</b> detik…</span><span class="bukAksi"><button type="button" class="btn kecil" id="bukSekarang">Buka sekarang</button><button type="button" class="btn garis kecil" id="bukBatal">Batal</button></span>';
+  kartu.insertBefore(el, kartu.firstChild);
+  var henti=function(){ if(bHitung){ clearInterval(bHitung); bHitung=null; } if(el.parentNode) el.remove(); };
+  $('bukSekarang').onclick=function(){ henti(); bukaBuklet(); };
+  $('bukBatal').onclick=henti;
+  bHitung=setInterval(function(){ d--; if(!document.body.contains(el)){ henti(); return; }
+    if(d<=0){ henti(); bukaBuklet(); return; } var x=$('bukDetik'); if(x) x.textContent=d; }, 1000);
 }
 function perangkat(){ var p=baca('bestie_perangkat'); if(!p || !/^[A-Za-z0-9]{8,40}$/.test(p)){ p=idBaru(); tulis('bestie_perangkat', p); } return p; }
 /* dicatat sekali per HP per sesi per jenis (lihat/unduh); diam-diam, tidak mengganggu siswa bila gagal */
