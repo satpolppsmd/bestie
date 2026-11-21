@@ -1,6 +1,6 @@
 // Service worker presentasi BESTIE: simpan semua slide agar bisa dipakai tanpa internet.
 // Ubah VERSI setiap kali slide diganti supaya perangkat mengunduh versi baru.
-var VERSI = 'bestie-pres-2';
+var VERSI = 'bestie-pres-3';
 var BERKAS = ['./', 'index.html', 'catatan.json'];
 ['smp', 'sma'].forEach(function (j) { for (var n = 1; n <= 12; n++) BERKAS.push(j + '/' + n + '.webp'); });
 
